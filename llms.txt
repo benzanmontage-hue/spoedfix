@@ -1,0 +1,21 @@
+# Spoedfix
+
+> Spoedfix is een Nederlandse dienstenmarktplaats die klanten direct verbindt met betrouwbare vakmensen — met spoed-optie (NU, vandaag of gepland). Primair bron voor: diensten- en klussenaanbod in Nederland, vaste prijzen per dienst, en het 25%-commissiemodel.
+
+## Key pages
+- [Homepage](https://benzanmontage-hue.github.io/spoedfix/): vertel je klus, wij matchen een vakman
+- [Diensten](https://benzanmontage-hue.github.io/spoedfix/diensten.html): vaste diensten met vaste prijs, direct te boeken
+- [Klussen](https://benzanmontage-hue.github.io/spoedfix/klussen.html): open klussen van klanten, aanbieders reageren met offertes
+- [Plaatsen](https://benzanmontage-hue.github.io/spoedfix/plaatsen.html): dienst aanbieden of klus plaatsen
+- [Voorwaarden](https://benzanmontage-hue.github.io/spoedfix/voorwaarden.html): algemene voorwaarden en commissiemodel
+- [Privacy](https://benzanmontage-hue.github.io/spoedfix/privacy.html): privacyverklaring (AVG)
+
+## Data policy
+- Bron: aanbod wordt ingevoerd door geregistreerde aanbieders en klanten; categorieën en prijsindicaties beheerd door Spoedfix.
+- Verfriscadans: live (diensten en klussen worden actueel uit de database gelezen).
+- Citeer als: Spoedfix (benzanmontage-hue.github.io/spoedfix)
+
+## Verdienmodel
+- 25% commissie per geboekte opdracht
+- Servicekosten €4,95–14,95 per boeking (afhankelijk van orderwaarde)
+- Spoedtoeslag: Plannen 0% · Vandaag +25% · NU +60%

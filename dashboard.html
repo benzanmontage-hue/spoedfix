@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — Spoedfix</title>
+  <link rel="icon" href="assets/favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <meta property="og:image" content="https://benzanmontage-hue.github.io/spoedfix/assets/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:image" content="https://benzanmontage-hue.github.io/spoedfix/assets/og-image.png">
+  <link rel="canonical" href="https://benzanmontage-hue.github.io/spoedfix/dashboard.html">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Dashboard — Spoedfix">
+  <meta property="og:description" content="">
+  <meta property="og:url" content="https://benzanmontage-hue.github.io/spoedfix/dashboard.html">
+  <meta property="og:site_name" content="Spoedfix">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="css/fonts.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="dashboard">
+  <header id="header"></header>
+
+  <main class="container page">
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-sub mb-2">Je account en activiteit op Spoedfix.</p>
+
+    <div class="dash-grid">
+      <aside class="dash-side">
+        <a href="#" class="active" onclick="return false">Overzicht</a>
+        <a href="plaatsen.html?type=dienst">+ Nieuwe dienst</a>
+        <a href="plaatsen.html?type=klus">+ Nieuwe klus</a>
+      </aside>
+
+      <section class="dash-main">
+        <div class="stat-grid" id="stat-grid"></div>
+        <div class="panel" id="panel-profiel">
+          <h2>Profiel</h2>
+          <div id="profiel-weergave"></div>
+        </div>
+        <div class="panel" id="panel-certificering" style="display:none">
+          <h2>Verificatie & certificering</h2>
+          <div id="cert-weergave"></div>
+        </div>
+        <div class="panel" id="panel-diensten" style="display:none">
+          <h2>Mijn diensten</h2>
+          <div id="mijn-diensten"></div>
+        </div>
+        <div class="panel" id="panel-klussen" style="display:none">
+          <h2>Mijn klussen</h2>
+          <div id="mijn-klussen"></div>
+        </div>
+        <div class="panel" id="panel-offertes" style="display:none">
+          <h2>Mijn offertes</h2>
+          <div id="mijn-offertes"></div>
+        </div>
+        <div class="panel" id="panel-boekingen" style="display:none">
+          <h2>Mijn boekingen</h2>
+          <div id="mijn-boekingen"></div>
+        </div>
+        <div class="panel" id="panel-avg">
+          <h2>Mijn gegevens & privacy (AVG)</h2>
+          <div id="avg-weergave"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <div><strong><img src="assets/logo-dark.png" alt="" class="logo-img logo-img-footer"> Spoedfix</strong></div>
+      <div><a href="diensten.html">Diensten</a> · <a href="klussen.html">Klussen</a> · <a href="plaatsen.html">Plaatsen</a> · <a href="login.html">Inloggen</a> · <a href="privacy.html">Privacy</a> · <a href="voorwaarden.html">Voorwaarden</a></div>
+    </div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    const STATUS_LABEL = {
+      open: "Open", toegewezen: "Toegewezen", gesloten: "Gesloten",
+      aangevraagd: "Aangevraagd", betaald: "Betaald", uitgevoerd: "Uitgevoerd", geannuleerd: "Geannuleerd", geschil: "Geschil",
+    };
+    const STATUS_PILL = {
+      open: "pill-open", aangevraagd: "pill-aangevraagd", betaald: "pill-betaald", uitgevoerd: "pill-uitgevoerd", gesloten: "pill-gesloten", geannuleerd: "pill-gesloten", toegewezen: "pill-betaald", geschil: "pill-gesloten",
+    };
+
+    let currentUser = null;
+    let stats = { diensten: 0, klussen: 0, boekingen: 0, offertes: 0 };
+
+    function renderStats() {
+      const s = [
+        ["Diensten", stats.diensten],
+        ["Klussen", stats.klussen],
+        ["Boekingen", stats.boekingen],
+        ["Offertes", stats.offertes],
+      ];
+      document.getElementById("stat-grid").innerHTML = s.map(([l, n]) =>
+        `<div class="stat-card"><div class="n">${n}</div><div class="l">${l}</div></div>`).join("");
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      currentUser = await requireAuth();
+      if (!currentUser) return;
+
+      const prof = await SF.getProfile(currentUser.id);
+      const rol = prof?.rol || "klant";
+      const rolLabel = rol === "aanbieder" ? "Aanbieder" : rol === "beide" ? "Klant & Aanbieder" : "Klant";
+      const naam = ((prof?.voornaam || "") + " " + (prof?.achternaam || "")).trim() || "Gebruiker";
+      const initiaal = (prof?.voornaam || "G").charAt(0).toUpperCase();
+      const geverifieerd = (rol === "aanbieder" || rol === "beide") ? await SF.isVerified(currentUser.id) : false;
+
+      // Profiel weergave + edit
+      document.getElementById("profiel-weergave").innerHTML = `
+        <div class="profiel-header">
+          <div class="avatar">${esc(initiaal)}</div>
+          <div class="profiel-info">
+            <div class="naam">${esc(naam)}</div>
+            <div class="email">${esc(currentUser.email || "")}</div>
+          </div>
+        </div>
+        <div class="badge-rij mt-2">
+          <span class="badge badge-cat">${rolLabel}</span>
+          ${geverifieerd ? '<span class="badge badge-verified">✓ Geverifieerd</span>' : ""}
+        </div>
+        <hr class="rule">
+        <div class="form-row">
+          <div>
+            <label>Voornaam</label>
+            <input type="text" id="p-voornaam" value="${esc(prof?.voornaam || "")}">
+          </div>
+          <div>
+            <label>Regio</label>
+            <input type="text" id="p-regio" value="${esc(prof?.regio || "")}" placeholder="bv. Amsterdam">
+          </div>
+        </div>
+        <label>Ik ben</label>
+        <select id="p-rol">
+          <option value="klant" ${rol==="klant"?"selected":""}>Klant (ik zoek hulp)</option>
+          <option value="aanbieder" ${rol==="aanbieder"?"selected":""}>Aanbieder (ik bied diensten aan)</option>
+          <option value="beide" ${rol==="beide"?"selected":""}>Beide</option>
+        </select>
+        <button class="btn btn-primary mt-2" onclick="saveProfiel()">Opslaan</button>
+      `;
+
+      // Laad secties op basis van rol
+      if (rol === "aanbieder" || rol === "beide") {
+        await laadCertificering();
+        await laadAanbieder();
+      }
+      await laadKlant();
+      await laadAVG();
+      renderStats();
+    });
+
+    async function saveProfiel() {
+      const patch = {
+        voornaam: document.getElementById("p-voornaam").value.trim(),
+        regio: document.getElementById("p-regio").value.trim(),
+        rol: document.getElementById("p-rol").value,
+      };
+      const { error } = await SF.updateProfile(currentUser.id, patch);
+      if (error) { toast("Fout bij opslaan", "error"); return; }
+      toast("Opgeslagen!", "success");
+      setTimeout(() => location.reload(), 600);
+    }
+
+    async function laadAanbieder() {
+      const svcs = await SF.myServices(currentUser.id);
+      stats.diensten = svcs.length;
+      const p1 = document.getElementById("panel-diensten");
+      p1.style.display = "";
+      document.getElementById("mijn-diensten").innerHTML = svcs.length
+        ? svcs.map(s => `<div class="list-row">
+            <div><div class="t">${esc(s.titel)}</div><div class="s">${esc(s.regio)} · ${prijsLabel(s)}</div></div>
+            <a class="btn btn-sm btn-ghost" href="dienst.html?id=${s.id}">Bekijk</a>
+          </div>`).join("")
+        : '<div class="text-muted">Nog geen diensten. <a href="plaatsen.html?type=dienst">Plaats je eerste dienst</a></div>';
+
+      const bids = await SF.myBids(currentUser.id);
+      stats.offertes = bids.length;
+      const p3 = document.getElementById("panel-offertes");
+      if (bids.length) {
+        p3.style.display = "";
+        document.getElementById("mijn-offertes").innerHTML = bids.map(b => `<div class="list-row">
+            <div><div class="t">Offerte €${b.bedrag}</div><div class="s">Klus: ${esc(b.id)}</div></div>
+            <span class="pill ${STATUS_PILL[b.status]||""}">${STATUS_LABEL[b.status]||b.status}</span>
+          </div>`).join("");
+      }
+    }
+
+    async function laadKlant() {
+      const jobs = await SF.myJobs(currentUser.id);
+      stats.klussen = jobs.length;
+      const p2 = document.getElementById("panel-klussen");
+      if (jobs.length) {
+        p2.style.display = "";
+        document.getElementById("mijn-klussen").innerHTML = jobs.map(j => `<div class="list-row">
+            <div><div class="t">${esc(j.titel)}</div><div class="s">${esc(j.regio)}</div></div>
+            <span class="pill ${STATUS_PILL[j.status]||""}">${STATUS_LABEL[j.status]||j.status}</span>
+          </div>`).join("");
+      }
+
+      const bookings = await SF.myBookings(currentUser.id);
+      stats.boekingen = bookings.length;
+      const p4 = document.getElementById("panel-boekingen");
+      if (bookings.length) {
+        p4.style.display = "";
+        document.getElementById("mijn-boekingen").innerHTML = bookings.map(b => {
+          const snelLabel = { plannen: "Plannen", vandaag: "Vandaag", nu: "NU" }[b.snelheid] || "";
+          const prijs = b.totaal ? euro(b.totaal) : euro(b.bedrag);
+          return `<div class="list-row">
+            <div><div class="t">Boeking ${prijs}${snelLabel ? " · " + snelLabel : ""}</div><div class="s">${esc(b.bericht || "")}</div></div>
+            <span class="pill ${STATUS_PILL[b.status]||""}">${STATUS_LABEL[b.status]||b.status}</span>
+          </div>`;
+        }).join("");
+      }
+
+      if (!jobs.length && !bookings.length) {
+        document.getElementById("panel-klussen").style.display = "";
+        document.getElementById("mijn-klussen").innerHTML = '<div class="text-muted">Nog geen klussen of boekingen. <a href="klussen.html">Bekijk open klussen</a> of <a href="diensten.html">boek een dienst</a>.</div>';
+      }
+    }
+
+    // ---- Verificatie & certificering ----
+    async function laadCertificering() {
+      const p = document.getElementById("panel-certificering");
+      p.style.display = "";
+      const certs = await SF.myCertifications(currentUser.id);
+      const verified = await SF.isVerified(currentUser.id);
+      const CERT_TYPES = ["KVK", "VCA", "Gasketelwet/CO", "NEN 3140", "NEN 1010", "SCIOS", "Asbest", "Vakdiploma", "Anders"];
+      const statusLabel = { geverifieerd: "Geverifieerd", afgewezen: "Afgewezen", in_behandeling: "In behandeling" };
+      const statusBadge = { geverifieerd: "badge-verified", afgewezen: "badge-pending", in_behandeling: "badge-pending" };
+      document.getElementById("cert-weergave").innerHTML = `
+        <p class="mb-2">Status: ${verified ? '<span class="badge badge-verified">✓ Geverifieerd</span>' : '<span class="badge badge-pending">Nog niet geverifieerd</span>'}</p>
+        <p class="text-muted side-note">Voor gas-, water- en elektrawerk is certificering wettelijk verplicht. Wij controleren je bewijs en zetten je profiel dan op "Geverifieerd".</p>
+        <div class="mt-2">${certs.length ? certs.map(c => `
+          <div class="cert-row"><div><div class="t">${esc(c.type)}</div><div class="s">${esc(c.nummer || "")}</div></div>
+          <span class="badge ${statusBadge[c.status] || "badge-pending"}">${statusLabel[c.status] || c.status}</span></div>`).join("")
+        : '<div class="text-muted side-note">Nog geen certificaten toegevoegd.</div>'}</div>
+        <hr class="rule">
+        <p class="panel-subtitle">Certificaat toevoegen</p>
+        <div class="form-row">
+          <div><label>Type</label><select id="cert-type">${CERT_TYPES.map(t => `<option>${t}</option>`).join("")}</select></div>
+          <div><label>Nummer / kenmerk</label><input type="text" id="cert-nummer" placeholder="bv. VCA-1234567"></div>
+        </div>
+        <button class="btn btn-primary mt-2" onclick="voegCertificaat()">Indienen ter controle</button>
+        <p class="hint">Handmatige controle (binnen 2 werkdagen). Daarna sta je als "Geverifieerd" op het platform.</p>
+      `;
+    }
+
+    async function voegCertificaat() {
+      const type = document.getElementById("cert-type").value;
+      const nummer = document.getElementById("cert-nummer").value.trim();
+      const { error } = await SF.addCertification({ user_id: currentUser.id, type, nummer });
+      if (error) { toast("Fout bij indienen", "error"); return; }
+      toast("Certificaat ingediend ter controle!", "success");
+      setTimeout(() => location.reload(), 600);
+    }
+
+    // ---- AVG ----
+    async function laadAVG() {
+      document.getElementById("avg-weergave").innerHTML = `
+        <p class="text-muted side-note mb-2">Conform de AVG heb je recht op inzage, correctie, export en verwijdering van je gegevens. <a href="privacy.html">Lees de privacyverklaring</a>.</p>
+        <div class="dash-actions">
+          <button class="btn btn-ghost btn-sm" onclick="exportData()">Exporteer mijn gegevens (JSON)</button>
+          <button class="btn btn-danger btn-sm" onclick="verwijderAccount()">Verwijder mijn account</button>
+        </div>
+      `;
+    }
+
+    async function exportData() {
+      const data = await SF.exportMyData(currentUser.id);
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "spoedfix-mijn-data.json";
+      a.click();
+      URL.revokeObjectURL(a.href);
+      await SF.requestData(currentUser.id, "export");
+      toast("Je gegevens zijn geëxporteerd!", "success");
+    }
+
+    async function verwijderAccount() {
+      if (!confirm("Weet je zeker dat je je account wilt verwijderen? Al je gegevens worden gewist (AVG art. 17). Dit kan niet ongedaan worden gemaakt.")) return;
+      await SF.deleteAccount(currentUser.id);
+      toast("Account verwijderd. Tot ziens!", "success");
+      setTimeout(() => (location.href = "index.html"), 900);
+    }
+  </script>
+</body>
+</html>
